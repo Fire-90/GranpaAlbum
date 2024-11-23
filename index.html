@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grandpa Album</title>
+    <link rel="shortcut icon" href="logo.png" />
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+    <header>
+        <h1>Grandpa Album</h1>
+    </header>
+
+    <main id="postContainer">
+        <!-- Existing posts will be displayed here -->
+    </main>
+
+    <div class="buttons">
+    <button id="createPostButton">Créer un nouveau Post</button>
+
+    <div id="postForm" style="display:none;">
+        <h2>Nouveau Post</h2>
+        <label for="postTitle">• Mettre un titre :</label>
+        <input type="text" id="postTitle" name="postTitle" required autocomplete="off" >
+
+        <label for="postContent">• Mettre du contenu :</label>
+        <textarea id="postContent" name="postContent" required autocomplete="off" ></textarea>
+ 
+        <label for="postImage">• Sélectionner une image :</label>
+        <input type="file" id="postImage" name="postImage" accept="image/*">
+        <span id="fileName"></span>
+
+        <button id="submitPostButton">Publier</button>
+    </div>
+
+    <div class="showPost">
+    <button id="ShowPost">Montrez Post</button>
+    </div>
+    </div>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBrxKb6lod6pqpPWYLTSwP6u0ZRB2aD-1I",
+          authDomain: "grandpa-album.firebaseapp.com",
+          databaseURL: "https://grandpa-album-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "grandpa-album",
+          storageBucket: "grandpa-album.appspot.com",
+          messagingSenderId: "928953756721",
+          appId: "1:928953756721:web:0918ce15b2bd100735b910",
+          measurementId: "G-5C1ETQHD4Y"
+        };
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        import {getDatabase, set, get, update, remove, ref, child, push} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
+
+        const database = getDatabase();
+        const storage = getStorage(app);
+
+        var createPostButton = document.getElementById("createPostButton");
+        var postForm = document.getElementById("postForm");
+        var submitPostButton = document.getElementById("submitPostButton");
+        var showPostButton = document.getElementById("ShowPost");
+
+        var postTitle = document.querySelector("#postTitle")
+        var postContent = document.querySelector("#postContent")
+        var postImage = document.querySelector("#postImage")
+
+        document.addEventListener("DOMContentLoaded", function () {
+            createPostButton.addEventListener("click", function () {
+                // Show the post form
+                postForm.style.display = "block";
+            });
+
+            submitPostButton.addEventListener("click", function () {
+            const newPostRef = push(ref(database, "Post/")); // Générer un ID unique
+
+            // Obtenir une référence de stockage unique pour l'image
+            const imageRef = storageRef(storage, 'images/' + newPostRef.key);
+
+            // Obtenir le fichier d'image à partir de l'élément input
+            const file = postImage.files[0];
+
+            // Télécharger le fichier dans le stockage Firebase
+            uploadBytes(imageRef, file).then((snapshot) => {
+                // Obtenir l'URL de téléchargement de l'image
+                getDownloadURL(snapshot.ref).then((downloadURL) => {
+                    // Ajouter les données du post dans la base de données
+                    set(newPostRef, {
+                        Title: postTitle.value,
+                        Content: postContent.value,
+                        Image: downloadURL // Utiliser l'URL de téléchargement de l'image
+                    })
+                    .then(() => {
+                        alert("Données ajoutées avec succès");
+                        postForm.style.display = "none"; // Cacher le formulaire après la soumission
+                    })
+                    .catch((error) => {
+                        alert(error);
+                    });
+                }).catch((error) => {
+                    alert(error);
+                });
+            }).catch((error) => {
+                alert(error);
+            });
+        });
+    });
+            function showPost() {
+                const dbRef = ref(database, "Post/");
+
+                get(dbRef).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const posts = snapshot.val();
+
+                        // Clear existing posts in #postContainer
+                        const postContainer = document.getElementById("postContainer");
+                        postContainer.innerHTML = "";
+
+                        // Loop through posts and display each one
+                        let postNumber = 1;
+                        for (const postId in posts) {
+                            const post = posts[postId];
+
+                            // Create a new article element for each post
+                            const article = document.createElement("article");
+                            article.className = "post";
+
+                            // Set the title and content of the post
+                            article.innerHTML = `
+                                <h2>${post.Title}</h2>
+                                <h3>${post.Content}</h3>
+                                <img src="${post.Image}" alt="Post Image">
+                            `;
+
+                            // Append the article to the postContainer
+                            postContainer.appendChild(article);
+                        }
+                    } else {
+                        console.log("No data available");
+                    }
+                }).catch((error) => {
+                    console.error("Error getting data:", error);
+                });
+            };
+
+        
+        document.addEventListener("DOMContentLoaded", showPost);
+        showPostButton.addEventListener("click", showPost);
+    </script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Fonction pour afficher l'image en grand
+        function showImageInModal(imageUrl) {
+            // Créer un élément de modal
+            const modal = document.createElement("div");
+            modal.className = "modal";
+
+            // Créer un élément d'image à l'intérieur de la modal
+            const modalImage = document.createElement("img");
+            modalImage.src = imageUrl;
+            modalImage.alt = "Image en grand";
+
+            // Ajouter l'image à la modal
+            modal.appendChild(modalImage);
+
+            // Ajouter la modal à la page
+            document.body.appendChild(modal);
+
+            // Ajouter une classe au corps pour désactiver le défilement
+            document.body.classList.add("modal-open");
+
+            // Fermer la modal lorsque l'utilisateur clique en dehors de l'image
+            modal.addEventListener("click", function () {
+                modal.remove();
+
+                // Supprimer la classe du corps pour réactiver le défilement
+                document.body.classList.remove("modal-open");
+            });
+        }
+
+        // Écouter les clics sur les images à l'intérieur du conteneur principal
+        document.getElementById("postContainer").addEventListener("click", function (event) {
+            // Vérifier si l'élément cliqué est une image
+            if (event.target.tagName === "IMG") {
+                // Obtenir l'URL de l'image à partir de l'attribut src
+                const imageUrl = event.target.src;
+
+                // Afficher l'image en grand
+                showImageInModal(imageUrl);
+            }
+        });
+    });
+</script>
+
+
+</body>
+</html>
