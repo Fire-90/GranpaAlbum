@@ -1,2 +1,3 @@
-Link :
-https://fire-90.github.io/GranpaAlbum/
+Granpa Album
+
+[SITE](https://fire-90.github.io/GranpaAlbum/)
